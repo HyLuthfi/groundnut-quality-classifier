@@ -2,3 +2,4 @@ streamlit==1.32.0
 numpy<2.0.0
 Pillow
 tensorflow-cpu==2.15.0
+tf-keras

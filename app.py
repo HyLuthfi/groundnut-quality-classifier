@@ -93,15 +93,23 @@ st.markdown(css_kustom, unsafe_allow_html=True)
 # Konstanta
 UKURAN_INPUT = (224, 224)
 KELAS = ['Bersih', 'Kotor (Kontaminasi)']
-PATH_MODEL_VGG = 'models/vgg16_best.h5'
-PATH_MODEL_MOB = 'models/mobilenetv2_best.h5'
+
+def get_model_path(nama_model):
+    filename = 'vgg16_best.h5' if nama_model == 'VGG16' else 'mobilenetv2_best.h5'
+    # Cek di dalam folder models/
+    if os.path.exists(f'models/{filename}'):
+        return f'models/{filename}'
+    # Cek di luar folder (root directory)
+    if os.path.exists(filename):
+        return filename
+    return None
 
 # Cache untuk load model
 @st.cache_resource
 def muat_model(nama_model):
-    path = PATH_MODEL_VGG if nama_model == 'VGG16' else PATH_MODEL_MOB
+    path = get_model_path(nama_model)
     
-    if not os.path.exists(path):
+    if path is None:
         return None
         
     return tf.keras.models.load_model(path)

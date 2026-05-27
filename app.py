@@ -92,43 +92,60 @@ st.markdown(css_kustom, unsafe_allow_html=True)
 # Konstanta
 UKURAN_INPUT = (224, 224)
 KELAS = ['Bersih', 'Kotor (Kontaminasi)']
+PATH_MODEL_VGG = 'models/vgg16_best.h5'
 PATH_MODEL_MOB = 'models/mobilenetv2_best.h5'
 
 # Cache untuk load model
 @st.cache_resource
-def muat_model():
-    if not os.path.exists(PATH_MODEL_MOB):
+def muat_model(nama_model):
+    path = PATH_MODEL_VGG if nama_model == 'VGG16' else PATH_MODEL_MOB
+    
+    if not os.path.exists(path):
         return None
-    return tf.keras.models.load_model(PATH_MODEL_MOB)
+        
+    return tf.keras.models.load_model(path)
 
 # Fungsi Preprocessing
-def praproses_citra(citra):
+def praproses_citra(citra, nama_model):
     citra = citra.convert('RGB')
     citra = citra.resize(UKURAN_INPUT)
     array_citra = tf.keras.preprocessing.image.img_to_array(citra)
     array_citra = np.expand_dims(array_citra, axis=0)
-    array_citra = tf.keras.applications.mobilenet_v2.preprocess_input(array_citra)
+    
+    if nama_model == 'VGG16':
+        array_citra = tf.keras.applications.vgg16.preprocess_input(array_citra)
+    else:
+        array_citra = tf.keras.applications.mobilenet_v2.preprocess_input(array_citra)
+        
     return array_citra
 
 # SIDEBAR (Pengaturan)
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/751/751508.png", width=80)
-    st.title("⚙️ Engine Spesifikasi")
-    st.markdown("Aplikasi web ini dideploy secara dinamis menggunakan arsitektur ringan (*Lightweight Architecture*) untuk mendemonstrasikan efisiensi komputasi pada *edge device*.")
+    st.title("⚙️ Pengaturan Sistem")
+    st.markdown("Pilih arsitektur jaringan saraf tiruan (ANN) yang akan digunakan untuk ekstraksi fitur citra.")
+    
+    pilihan_model = st.selectbox(
+        "Pilih Arsitektur Model",
+        ('MobileNetV2', 'VGG16')
+    )
     
     st.markdown("---")
-    st.info("⚡ **Model Aktif: MobileNetV2**\n- Parameter: ~3.4 Juta\n- Ukuran: ~21 MB\n- Akurasi Testing: 96%")
-    st.markdown("*(Catatan: Model VGG16 dengan 138 Juta parameter tidak dimuat pada versi web ini demi optimasi kecepatan server)*")
+    st.markdown("**Perbandingan Model:**")
+    if pilihan_model == 'VGG16':
+        st.success("✅ **VGG16** (138 Juta Parameter)\nAkurasi: 100%\nSangat akurat namun berat.")
+    else:
+        st.info("⚡ **MobileNetV2** (3.4 Juta Parameter)\nAkurasi: 96%\nSangat ringan dan cepat.")
 
 # MAIN INTERFACE
 st.markdown("<h1>Detektor Kualitas Kacang Tanah 🥜</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94A3B8; margin-bottom: 2rem;'>Sistem penyortiran otomatis menggunakan Deep Learning (SNI 01-3921-1995)</p>", unsafe_allow_html=True)
 
-# Muat model
-model_aktif = muat_model()
+# Muat model sesuai pilihan di background
+model_aktif = muat_model(pilihan_model)
 
 if model_aktif is None:
-    st.error(f"⚠️ **File model tidak ditemukan!**\nPastikan file bobot (`mobilenetv2_best.h5`) tersedia di dalam folder `models/`.")
+    st.error(f"⚠️ **File model tidak ditemukan!**\nPastikan file bobot (`vgg16_best.h5` atau `mobilenetv2_best.h5`) tersedia di dalam folder `models/`.")
 else:
     # Komponen Upload
     col1, col2 = st.columns([1, 1])
@@ -146,10 +163,10 @@ else:
     # Tombol Prediksi
     if berkas_unggah is not None:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔍 Analisis Citra"):
+        if st.button(f"🔍 Analisis menggunakan {pilihan_model}"):
             with st.spinner('Mengekstrak fitur visual...'):
                 # Proses prediksi
-                tensor_input = praproses_citra(citra_asli)
+                tensor_input = praproses_citra(citra_asli, pilihan_model)
                 probabilitas = model_aktif.predict(tensor_input)[0][0]
                 
                 # Kelas biner: 0 = Bersih, 1 = Kotor

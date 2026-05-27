@@ -1,8 +1,9 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import tensorflow as tf
 import os
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
+import tensorflow as tf
 
 # Konfigurasi Halaman (Harus di awal)
 st.set_page_config(

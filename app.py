@@ -18,7 +18,8 @@ Dense.__init__ = patch_dense_init
 # Patch InputLayer
 asli_input_init = InputLayer.__init__
 def patch_input_init(self, *args, **kwargs):
-    kwargs.pop('batch_shape', None)
+    if 'batch_shape' in kwargs:
+        kwargs['batch_input_shape'] = kwargs.pop('batch_shape')
     kwargs.pop('optional', None)
     asli_input_init(self, *args, **kwargs)
 InputLayer.__init__ = patch_input_init

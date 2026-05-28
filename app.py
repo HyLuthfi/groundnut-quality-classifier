@@ -12,28 +12,53 @@ from tensorflow.keras.models import Model
 st.set_page_config(
     page_title="Penyortir Kacang Tanah SNI",
     page_icon="🥜",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS: Clean, White, Elegant, Minimalist
+# Custom CSS
 css_kustom = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"]  {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: #FAFAFA;
-        color: #111827;
+        background-color: #F8FAFC;
+        color: #1E293B;
     }
     
     .stApp {
-        background-color: #FAFAFA;
+        background-color: #F8FAFC;
     }
 
-    /* Card styling for modern white look */
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        margin-bottom: 2rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 55px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0px 0px;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        color: #64748B;
+        font-weight: 600;
+        font-size: 1.15rem;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        color: #0F172A !important;
+        border-bottom: 3px solid #3B82F6 !important;
+    }
+
+    /* Card styling */
     .metric-card {
         background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
+        border: 1px solid #E2E8F0;
         border-radius: 16px;
         padding: 32px 24px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -43,16 +68,26 @@ css_kustom = """
     
     .metric-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .info-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-left: 5px solid #3B82F6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
 
     h1, h2, h3 {
-        color: #111827 !important;
+        color: #0F172A !important;
         font-weight: 700 !important;
     }
 
     .stButton > button {
-        background-color: #111827;
+        background-color: #0F172A;
         color: white;
         border-radius: 8px;
         padding: 0.75rem 2rem;
@@ -63,7 +98,7 @@ css_kustom = """
     }
     
     .stButton > button:hover {
-        background-color: #374151;
+        background-color: #334155;
         color: white;
     }
     
@@ -88,7 +123,14 @@ css_kustom = """
     }
     
     hr {
-        border-color: #E5E7EB;
+        border-color: #E2E8F0;
+    }
+    
+    /* Markdown Text Styling */
+    p, li {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: #334155;
     }
 </style>
 """
@@ -137,90 +179,146 @@ def praproses_citra(citra, nama_model):
     return tf.keras.applications.mobilenet_v2.preprocess_input(array_citra)
 
 # HEADER
-st.markdown("<h1 style='text-align: center; margin-top: 1rem;'>Sistem Inspeksi Mutu Kacang Tanah</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 1.1rem; color: #6B7280; margin-bottom: 3rem;'>Analisis Kualitas Berbasis Kecerdasan Buatan (Standardisasi SNI 01-3921-1995)</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; margin-top: 1rem;'>Sistem Inspeksi Mutu Kacang Tanah SNI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.1rem; color: #64748B; margin-bottom: 2rem;'>Sistem Otomatisasi Penilaian Kualitas Fisik Menggunakan Deep Learning</p>", unsafe_allow_html=True)
 
-# Muat Kedua Model Sekaligus
-model_vgg = muat_model('VGG16')
-model_mob = muat_model('MobileNetV2')
+# TABS NAVIGATION
+tab_prediksi, tab_mobilenet, tab_vgg = st.tabs(["🔍 Prediksi Mutu", "⚡ MobileNetV2", "🧠 VGG16"])
 
-if model_vgg is None or model_mob is None:
-    st.error("⚠️ File bobot model tidak ditemukan di dalam direktori.")
-    st.stop()
-
-# UPLOAD SECTION - Centered and Clean
-kolom_kiri, kolom_tengah, kolom_kanan = st.columns([1, 2, 1])
-
-with kolom_tengah:
-    berkas_unggah = st.file_uploader("Unggah citra sampel kacang tanah (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
+# --- TAB 1: PREDIKSI ---
+with tab_prediksi:
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    if berkas_unggah is not None:
-        citra_asli = Image.open(berkas_unggah)
-        st.image(citra_asli, caption="Sampel Inspeksi", use_container_width=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        tombol_prediksi = st.button("Mulai Inspeksi Visual")
+    model_vgg = muat_model('VGG16')
+    model_mob = muat_model('MobileNetV2')
 
-# HASIL PREDIKSI - Symmetrical Head-to-Head
-if berkas_unggah is not None and 'tombol_prediksi' in locals() and tombol_prediksi:
-    st.markdown("<hr style='margin: 3rem 0;'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; margin-bottom: 2rem;'>Laporan Hasil Inspeksi</h2>", unsafe_allow_html=True)
+    if model_vgg is None or model_mob is None:
+        st.warning("⚠️ Bobot model belum tersedia. Menunggu inisialisasi file `.h5` pada server.")
+    else:
+        kolom_kiri, kolom_tengah, kolom_kanan = st.columns([1, 2, 1])
+
+        with kolom_tengah:
+            st.markdown("<div class='info-card'><b>Instruksi:</b> Unggah citra kacang tanah dengan pencahayaan yang cukup dan resolusi yang jelas untuk mendapatkan hasil prediksi yang optimal.</div>", unsafe_allow_html=True)
+            berkas_unggah = st.file_uploader("Pilih file citra (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
+            
+            if berkas_unggah is not None:
+                citra_asli = Image.open(berkas_unggah)
+                st.image(citra_asli, caption="Sampel Inspeksi", use_container_width=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                tombol_prediksi = st.button("Mulai Inspeksi Visual Paralel")
+
+        if berkas_unggah is not None and 'tombol_prediksi' in locals() and tombol_prediksi:
+            st.markdown("<hr style='margin: 3rem 0;'>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; margin-bottom: 2rem;'>Laporan Hasil Inspeksi Head-to-Head</h2>", unsafe_allow_html=True)
+            
+            with st.spinner("Mengeksekusi jaringan komputasi..."):
+                start_vgg = time.time()
+                tensor_vgg = praproses_citra(citra_asli, 'VGG16')
+                prob_vgg = model_vgg.predict(tensor_vgg)[0][0]
+                waktu_vgg = time.time() - start_vgg
+                
+                start_mob = time.time()
+                tensor_mob = praproses_citra(citra_asli, 'MobileNetV2')
+                prob_mob = model_mob.predict(tensor_mob)[0][0]
+                waktu_mob = time.time() - start_mob
+                
+                def format_hasil(probabilitas):
+                    is_kotor = probabilitas > 0.5
+                    kelas = KELAS[1] if is_kotor else KELAS[0]
+                    confidence = probabilitas if is_kotor else (1 - probabilitas)
+                    style_class = "status-kotor" if is_kotor else "status-bersih"
+                    icon = "⚠️" if is_kotor else "✓"
+                    return kelas, confidence * 100, style_class, icon
+
+                kelas_vgg, conf_vgg, style_vgg, icon_vgg = format_hasil(prob_vgg)
+                kelas_mob, conf_mob, style_mob, icon_mob = format_hasil(prob_mob)
+
+                col_vgg, col_mob = st.columns(2)
+                
+                with col_vgg:
+                    st.markdown(f"""
+                    <div class='metric-card'>
+                        <h3 style='color: #475569; font-size: 1.2rem; margin-bottom: 1.5rem;'>Model VGG-16</h3>
+                        <div style='margin-bottom: 2rem;'>
+                            <span class='{style_vgg}'>{icon_vgg} {kelas_vgg}</span>
+                        </div>
+                        <p style='margin: 0; font-size: 0.9rem; color: #64748B;'>Tingkat Keyakinan</p>
+                        <h2 style='margin: 0 0 1.5rem 0; color: #0F172A;'>{conf_vgg:.2f}%</h2>
+                        <div style='background-color: #F1F5F9; padding: 8px; border-radius: 6px; display: inline-block;'>
+                            <span style='font-size: 0.85rem; color: #475569;'>Waktu Eksekusi: <b>{waktu_vgg:.3f} detik</b></span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                with col_mob:
+                    st.markdown(f"""
+                    <div class='metric-card'>
+                        <h3 style='color: #475569; font-size: 1.2rem; margin-bottom: 1.5rem;'>Model MobileNetV2</h3>
+                        <div style='margin-bottom: 2rem;'>
+                            <span class='{style_mob}'>{icon_mob} {kelas_mob}</span>
+                        </div>
+                        <p style='margin: 0; font-size: 0.9rem; color: #64748B;'>Tingkat Keyakinan</p>
+                        <h2 style='margin: 0 0 1.5rem 0; color: #0F172A;'>{conf_mob:.2f}%</h2>
+                        <div style='background-color: #F1F5F9; padding: 8px; border-radius: 6px; display: inline-block;'>
+                            <span style='font-size: 0.85rem; color: #475569;'>Waktu Eksekusi: <b>{waktu_mob:.3f} detik</b></span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+# --- TAB 2: MOBILENETV2 ---
+with tab_mobilenet:
+    st.markdown("<div style='padding: 2rem;'>", unsafe_allow_html=True)
+    st.markdown("<h2>Arsitektur MobileNetV2</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    MobileNetV2 adalah arsitektur *Convolutional Neural Network* (CNN) yang dirancang khusus untuk efisiensi komputasi, menjadikannya standar industri untuk penerapan pada sistem berbasis seluler (*mobile*) dan *edge devices*.
     
-    with st.spinner("Memproses analisis komparatif secara paralel..."):
-        # Prediksi VGG16
-        start_vgg = time.time()
-        tensor_vgg = praproses_citra(citra_asli, 'VGG16')
-        prob_vgg = model_vgg.predict(tensor_vgg)[0][0]
-        waktu_vgg = time.time() - start_vgg
-        
-        # Prediksi MobileNetV2
-        start_mob = time.time()
-        tensor_mob = praproses_citra(citra_asli, 'MobileNetV2')
-        prob_mob = model_mob.predict(tensor_mob)[0][0]
-        waktu_mob = time.time() - start_mob
-        
-        def format_hasil(probabilitas):
-            is_kotor = probabilitas > 0.5
-            kelas = KELAS[1] if is_kotor else KELAS[0]
-            confidence = probabilitas if is_kotor else (1 - probabilitas)
-            style_class = "status-kotor" if is_kotor else "status-bersih"
-            icon = "⚠️" if is_kotor else "✓"
-            return kelas, confidence * 100, style_class, icon
+    ### ⚙️ Spesifikasi Teknis dalam Penelitian
+    - **Total Parameter Beban**: ~3.4 Juta
+    - **Fungsi Aktivasi Output**: Sigmoid (Binary Classification)
+    - **Teknik Optimasi**: Menggunakan *Inverted Residuals* & *Linear Bottlenecks* untuk mengurangi kelebihan beban komputasi.
+    - **Metrik Evaluasi Akhir**:
+      - Akurasi (*Accuracy*): Mendekati **96%**
+      - Profil Eksekusi: Sangat Cepat, sangat efisien dari sisi penggunaan RAM dan CPU.
+      
+    ### 🔄 Alur Pemrosesan (Preprocessing)
+    1. **Resizing**: Mengubah dimensi citra menjadi standar input $224 \\times 224$ piksel.
+    2. **Normalisasi**: Nilai intensitas piksel diskalakan secara otomatis ke dalam rentang $[-1, 1]$ menggunakan teknik bawaan pustaka `tf.keras.applications.mobilenet_v2.preprocess_input`.
+    
+    ### 🏗️ Modifikasi Head (Transfer Learning)
+    Pada penelitian ini, lapisan klasifikasi bawaan ImageNet pada MobileNetV2 dibuang (*include_top=False*) dan digantikan dengan lapisan khusus yang kita rancang:
+    - `GlobalAveragePooling2D()`: Berfungsi untuk mereduksi dimensi spasial secara drastis untuk mencegah terjadinya *overfitting*.
+    - `Dense(128, ReLU)`: Berfungsi sebagai lapisan pengekstraksi fitur tingkat tinggi yang telah dikompres.
+    - `Dropout(0.3)`: Menonaktifkan 30% saraf secara acak untuk meningkatkan daya generalisasi model.
+    - `Dense(1, Sigmoid)`: Sebagai lapisan determinasi final untuk membedakan kelas **Bersih** vs **Kotor**.
+    """)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        kelas_vgg, conf_vgg, style_vgg, icon_vgg = format_hasil(prob_vgg)
-        kelas_mob, conf_mob, style_mob, icon_mob = format_hasil(prob_mob)
-
-        # Symmetrical Layout
-        col_vgg, col_mob = st.columns(2)
-        
-        with col_vgg:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h3 style='color: #4B5563; font-size: 1.2rem; margin-bottom: 1.5rem;'>Arsitektur VGG-16</h3>
-                <div style='margin-bottom: 2rem;'>
-                    <span class='{style_vgg}'>{icon_vgg} {kelas_vgg}</span>
-                </div>
-                <p style='margin: 0; font-size: 0.9rem; color: #6B7280;'>Tingkat Akurasi (Confidence)</p>
-                <h2 style='margin: 0 0 1.5rem 0; color: #111827;'>{conf_vgg:.2f}%</h2>
-                <div style='background-color: #F3F4F6; padding: 8px; border-radius: 6px; display: inline-block;'>
-                    <span style='font-size: 0.85rem; color: #4B5563;'>Waktu Inferensi: <b>{waktu_vgg:.3f} s</b></span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col_mob:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h3 style='color: #4B5563; font-size: 1.2rem; margin-bottom: 1.5rem;'>Arsitektur MobileNetV2</h3>
-                <div style='margin-bottom: 2rem;'>
-                    <span class='{style_mob}'>{icon_mob} {kelas_mob}</span>
-                </div>
-                <p style='margin: 0; font-size: 0.9rem; color: #6B7280;'>Tingkat Akurasi (Confidence)</p>
-                <h2 style='margin: 0 0 1.5rem 0; color: #111827;'>{conf_mob:.2f}%</h2>
-                <div style='background-color: #F3F4F6; padding: 8px; border-radius: 6px; display: inline-block;'>
-                    <span style='font-size: 0.85rem; color: #4B5563;'>Waktu Inferensi: <b>{waktu_mob:.3f} s</b></span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("<br><p style='text-align: center; font-size: 0.9rem; color: #9CA3AF;'>*Hasil di atas merupakan perbandingan langsung (head-to-head) kecepatan dan akurasi antara VGG16 dan MobileNetV2.</p>", unsafe_allow_html=True)
+# --- TAB 3: VGG16 ---
+with tab_vgg:
+    st.markdown("<div style='padding: 2rem;'>", unsafe_allow_html=True)
+    st.markdown("<h2>Arsitektur VGG-16</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    VGG-16 adalah arsitektur CNN klasik yang sangat dalam (*deep architecture*) buatan Oxford University. Model ini terkenal karena akurasinya yang tajam dalam mengekstrak fitur spasial kompleks pada citra beresolusi tinggi.
+    
+    ### ⚙️ Spesifikasi Teknis dalam Penelitian
+    - **Total Parameter Beban**: ~138 Juta (Sangat Besar/Berat)
+    - **Fungsi Aktivasi Output**: Sigmoid (Binary Classification)
+    - **Teknik Optimasi**: Tumpukan konvolusi ukuran $3 \\times 3$ yang padat dan konstan pada seluruh layernya.
+    - **Metrik Evaluasi Akhir**:
+      - Akurasi (*Accuracy*): Mendekati Sempurna (**100%** pada Dataset Validasi)
+      - Profil Eksekusi: Memerlukan waktu pemrosesan (*inference time*) yang sedikit lebih lama jika dijalankan pada *CPU* standar.
+      
+    ### 🔄 Alur Pemrosesan (Preprocessing)
+    1. **Resizing**: Mengubah dimensi citra menjadi standar input $224 \\times 224$ piksel.
+    2. **Normalisasi**: Tidak seperti model lain, VGG16 tidak menggunakan skala kecil, melainkan memusatkan nilai pada rata-rata citra (*zero-centered by mean pixel*) dan mengonversi format susunan warna asli dari **RGB ke BGR** sesuai arsitektur awal peneliti aslinya menggunakan fungsi `tf.keras.applications.vgg16.preprocess_input`.
+    
+    ### 🏗️ Modifikasi Head (Transfer Learning)
+    Sama halnya dengan MobileNetV2, penyesuaian (*fine-tuning*) pada bagian akhir VGG-16 dibuat identik 100%:
+    - `GlobalAveragePooling2D()` 
+    - `Dense(128, ReLU)`
+    - `Dropout(0.3)`
+    - `Dense(1, Sigmoid)`
+    
+    > **Catatan Peneliti:** Penggunaan layer modifikasi yang identik pada kedua model bertujuan untuk menciptakan ruang komparasi (perbandingan) *head-to-head* yang valid, adil, dan sah secara kaidah akademis.
+    """)
+    st.markdown("</div>", unsafe_allow_html=True)

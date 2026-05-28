@@ -62,6 +62,7 @@ css_kustom = """
     /* Card styling for modern white look */
     .metric-card {
         background-color: #FFFFFF;
+        color: #111827 !important;
         border: 1px solid #E5E7EB;
         border-radius: 12px;
         padding: 32px 24px;
@@ -72,6 +73,7 @@ css_kustom = """
     
     .info-card {
         background-color: #FFFFFF;
+        color: #111827 !important;
         border: 1px solid #E5E7EB;
         border-left: 4px solid #111827;
         border-radius: 8px;

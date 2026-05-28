@@ -4,6 +4,26 @@ from PIL import Image
 import os
 import tensorflow as tf
 
+# --- MONKEY PATCH KERAS BUG ---
+# Mengatasi bug Keras 3 yang membocorkan kwargs masa depan ke dalam file .h5 (legacy)
+from keras.layers import Dense, InputLayer
+
+# Patch Dense
+asli_dense_init = Dense.__init__
+def patch_dense_init(self, *args, **kwargs):
+    kwargs.pop('quantization_config', None)
+    asli_dense_init(self, *args, **kwargs)
+Dense.__init__ = patch_dense_init
+
+# Patch InputLayer
+asli_input_init = InputLayer.__init__
+def patch_input_init(self, *args, **kwargs):
+    kwargs.pop('batch_shape', None)
+    kwargs.pop('optional', None)
+    asli_input_init(self, *args, **kwargs)
+InputLayer.__init__ = patch_input_init
+# ------------------------------
+
 # Konfigurasi Halaman (Harus di awal)
 st.set_page_config(
     page_title="AI Penyortir Kacang Tanah",

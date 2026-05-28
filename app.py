@@ -4,7 +4,6 @@ from PIL import Image
 import os
 import tensorflow as tf
 import time
-import pandas as pd
 from tensorflow.keras.applications import VGG16, MobileNetV2
 from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from tensorflow.keras.models import Model
@@ -16,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS: Clean, White, Symmetrical, Centered Navbar, No Emojis
+# Custom CSS: Clean, White, Symmetrical, Centered Navbar
 css_kustom = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
@@ -35,7 +34,7 @@ css_kustom = """
     .stTabs [data-baseweb="tab-list"] {
         display: flex;
         justify-content: center;
-        gap: 40px;
+        gap: 30px;
         border-bottom: 1px solid #E5E7EB;
         padding-bottom: 10px;
         margin-bottom: 2rem;
@@ -46,10 +45,10 @@ css_kustom = """
         white-space: pre-wrap;
         background-color: transparent;
         border-radius: 0px;
-        padding: 10px 20px;
+        padding: 10px 15px;
         color: #6B7280;
         font-weight: 600;
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         border: none !important;
         transition: all 0.3s;
     }
@@ -69,11 +68,6 @@ css_kustom = """
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         text-align: center;
         transition: transform 0.2s ease-in-out;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     
     .info-card {
@@ -128,33 +122,6 @@ css_kustom = """
         display: inline-block;
         border: 1px solid #FECACA;
     }
-    
-    /* Tabel Confusion Matrix */
-    .cm-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-        font-size: 1rem;
-        text-align: center;
-        background-color: #FFFFFF;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #E5E7EB;
-    }
-    
-    .cm-table th, .cm-table td {
-        padding: 12px 15px;
-        border: 1px solid #E5E7EB;
-    }
-    
-    .cm-table th {
-        background-color: #F9FAFB;
-        color: #374151;
-        font-weight: 600;
-    }
-    
-    .cm-true-positive { background-color: #D1FAE5; color: #065F46; font-weight: 700; }
-    .cm-false-positive { background-color: #FEE2E2; color: #991B1B; font-weight: 700; }
     
     hr {
         border-color: #E5E7EB;
@@ -212,12 +179,26 @@ def praproses_citra(citra, nama_model):
         return tf.keras.applications.vgg16.preprocess_input(array_citra)
     return tf.keras.applications.mobilenet_v2.preprocess_input(array_citra)
 
+def tampilkan_gambar_visualisasi(nama_file, deskripsi):
+    path_visual = f"Visualisasi/{nama_file}"
+    if os.path.exists(path_visual):
+        gambar = Image.open(path_visual)
+        st.image(gambar, caption=deskripsi, use_container_width=True)
+    else:
+        st.info(f"Visualisasi {nama_file} belum diunggah ke repositori.")
+
 # HEADER
 st.markdown("<h1 style='text-align: center; margin-top: 1rem;'>Sistem Inspeksi Mutu Kacang Tanah SNI</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 1.1rem; color: #6B7280; margin-bottom: 2rem;'>Sistem Otomatisasi Penilaian Kualitas Fisik Menggunakan Deep Learning</p>", unsafe_allow_html=True)
 
 # TABS NAVIGATION
-tab_prediksi, tab_dataset, tab_vgg, tab_mobilenet = st.tabs(["Inspeksi Visual", "Metodologi & Dataset", "Analisis VGG-16", "Analisis MobileNetV2"])
+tab_prediksi, tab_dataset, tab_vgg, tab_mobilenet, tab_komparasi = st.tabs([
+    "Inspeksi Visual", 
+    "Metodologi & Dataset", 
+    "Analisis VGG-16", 
+    "Analisis MobileNetV2",
+    "Komparasi Model"
+])
 
 # --- TAB 1: PREDIKSI ---
 with tab_prediksi:
@@ -306,31 +287,29 @@ with tab_dataset:
     st.markdown("<h2 style='text-align:center;'>Metodologi & Manajemen Dataset</h2>", unsafe_allow_html=True)
     st.markdown("<hr>", unsafe_allow_html=True)
     
+    tampilkan_gambar_visualisasi("Sample_Dataset.png", "Visualisasi Sampel Dataset Kacang Tanah")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
     col_data1, col_data2 = st.columns(2)
     with col_data1:
         st.markdown("### Proporsi Dataset")
         st.markdown("""
         Penelitian ini menggunakan dataset citra kacang tanah yang telah dianotasi berdasarkan standar SNI 01-3921-1995. Dataset dibagi menjadi tiga bagian utama (Split 80/10/10) untuk menghindari kebocoran data (*data leakage*):
         
-        *   **Data Latih (Training): 80%**
-            Digunakan sebagai materi dasar pembelajaran mesin selama proses pelatihan (*fitting*).
-        *   **Data Validasi (Validation): 10%**
-            Digunakan untuk evaluasi objektif secara berkala (per *epoch*) untuk mendeteksi *overfitting*.
-        *   **Data Uji (Testing): 10%**
-            Disimpan secara rahasia oleh sistem dan hanya digunakan satu kali di akhir penelitian untuk mengukur matriks kebingungan (*confusion matrix*).
+        *   **Data Latih (Training): 80%** - Digunakan sebagai materi dasar pembelajaran mesin.
+        *   **Data Validasi (Validation): 10%** - Digunakan untuk evaluasi objektif secara berkala untuk mendeteksi *overfitting*.
+        *   **Data Uji (Testing): 10%** - Disimpan secara rahasia dan hanya digunakan satu kali di akhir penelitian.
         """)
     
     with col_data2:
         st.markdown("### Konfigurasi Pelatihan Dasar")
         st.markdown("""
         *   **Metode Pembelajaran**: Transfer Learning & Fine-Tuning
-        *   **Fungsi Kerugian (Loss Function)**: Binary Crossentropy
-        *   **Pengoptimal (Optimizer)**: Adam (*Adaptive Moment Estimation*)
-        *   **Jumlah Siklus Pelatihan**: 20 Epochs
-        *   **Metode Pencegahan Overfitting**: Early Stopping (Berhenti otomatis jika tidak ada perbaikan pada akurasi validasi).
+        *   **Fungsi Kerugian**: Binary Crossentropy
+        *   **Pengoptimal**: Adam (*Adaptive Moment Estimation*)
+        *   **Metode Pencegahan Overfitting**: Early Stopping
         *   **Augmentasi Data**: Rotasi, *zoom*, dan pembalikan horizontal (*horizontal flip*) diterapkan khusus pada Data Latih.
         """)
-        
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- TAB 3: VGG16 ---
@@ -342,45 +321,9 @@ with tab_vgg:
     st.markdown("""
     VGG-16 adalah arsitektur konvolusional dengan kedalaman 16 lapisan berbobot. Dengan total parameter mencapai **138 Juta**, arsitektur ini memetakan setiap detail spasial pada objek dengan akurasi sangat tajam.
     """)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    col_grafik1, col_grafik2 = st.columns(2)
-    with col_grafik1:
-        st.markdown("#### Grafik Pergerakan Akurasi (Accuracy)")
-        # Hardcode data menyerupai hasil training
-        df_acc_vgg = pd.DataFrame({
-            "Akurasi Latih": [0.65, 0.82, 0.91, 0.96, 0.98, 0.99, 1.0, 1.0, 1.0, 1.0],
-            "Akurasi Validasi": [0.62, 0.79, 0.88, 0.94, 0.96, 0.98, 0.99, 1.0, 1.0, 1.0]
-        })
-        st.line_chart(df_acc_vgg, color=["#111827", "#3B82F6"])
-        
-    with col_grafik2:
-        st.markdown("#### Grafik Tingkat Kerugian (Loss)")
-        df_loss_vgg = pd.DataFrame({
-            "Loss Latih": [0.70, 0.45, 0.25, 0.12, 0.08, 0.04, 0.02, 0.01, 0.01, 0.00],
-            "Loss Validasi": [0.72, 0.50, 0.30, 0.15, 0.10, 0.05, 0.03, 0.02, 0.01, 0.00]
-        })
-        st.line_chart(df_loss_vgg, color=["#DC2626", "#F59E0B"])
-
-    st.markdown("#### Matriks Kebingungan (Confusion Matrix) Data Uji")
-    st.markdown("""
-    <table class='cm-table'>
-      <tr>
-        <th></th>
-        <th>Prediksi Kacang Bersih</th>
-        <th>Prediksi Kacang Kotor</th>
-      </tr>
-      <tr>
-        <th>Aktual Bersih</th>
-        <td class='cm-true-positive'>Sempurna (True Positive)</td>
-        <td class='cm-false-positive'>0 (False Negative)</td>
-      </tr>
-      <tr>
-        <th>Aktual Kotor</th>
-        <td class='cm-false-positive'>0 (False Positive)</td>
-        <td class='cm-true-positive'>Sempurna (True Negative)</td>
-      </tr>
-    </table>
-    """, unsafe_allow_html=True)
+    tampilkan_gambar_visualisasi("Confusion_dan_Training_VGG16.png", "Grafik Training Loss/Accuracy & Confusion Matrix VGG-16")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -393,44 +336,18 @@ with tab_mobilenet:
     st.markdown("""
     MobileNetV2 dirancang khusus menggunakan teknik *Inverted Residuals* dan *Linear Bottlenecks*. Walaupun parameternya sangat kecil (**3.4 Juta parameter**), ia tetap mempertahankan akurasi hingga 96% dan memiliki kecepatan eksekusi yang unggul.
     """)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    col_grafik3, col_grafik4 = st.columns(2)
-    with col_grafik3:
-        st.markdown("#### Grafik Pergerakan Akurasi (Accuracy)")
-        df_acc_mob = pd.DataFrame({
-            "Akurasi Latih": [0.60, 0.72, 0.81, 0.86, 0.89, 0.91, 0.93, 0.95, 0.96, 0.96],
-            "Akurasi Validasi": [0.58, 0.69, 0.78, 0.83, 0.85, 0.82, 0.89, 0.92, 0.94, 0.96]
-        })
-        st.line_chart(df_acc_mob, color=["#111827", "#3B82F6"])
-        
-    with col_grafik4:
-        st.markdown("#### Grafik Tingkat Kerugian (Loss)")
-        df_loss_mob = pd.DataFrame({
-            "Loss Latih": [0.75, 0.60, 0.45, 0.35, 0.28, 0.22, 0.18, 0.14, 0.10, 0.08],
-            "Loss Validasi": [0.78, 0.65, 0.50, 0.42, 0.38, 0.45, 0.25, 0.20, 0.15, 0.12]
-        })
-        st.line_chart(df_loss_mob, color=["#DC2626", "#F59E0B"])
+    tampilkan_gambar_visualisasi("Confusion_dan_Training_MobileNetV2.png", "Grafik Training Loss/Accuracy & Confusion Matrix MobileNetV2")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("#### Matriks Kebingungan (Confusion Matrix) Data Uji")
-    st.markdown("""
-    <table class='cm-table'>
-      <tr>
-        <th></th>
-        <th>Prediksi Kacang Bersih</th>
-        <th>Prediksi Kacang Kotor</th>
-      </tr>
-      <tr>
-        <th>Aktual Bersih</th>
-        <td class='cm-true-positive'>Akurasi Tinggi (True Positive)</td>
-        <td class='cm-false-positive'>Rasio Kegagalan Minor (False Negative)</td>
-      </tr>
-      <tr>
-        <th>Aktual Kotor</th>
-        <td class='cm-false-positive'>Rasio Kegagalan Minor (False Positive)</td>
-        <td class='cm-true-positive'>Akurasi Tinggi (True Negative)</td>
-      </tr>
-    </table>
-    <p style='text-align:center; font-size:0.9rem; color:#6B7280; margin-top:10px;'>Terdapat sedikit anomali pada siklus validasi (Fine-Tuning Shock), namun secara umum matriks menunjukkan kemampuan deteksi yang sangat baik (96%).</p>
-    """, unsafe_allow_html=True)
+# --- TAB 5: KOMPARASI METRIK ---
+with tab_komparasi:
+    st.markdown("<div style='padding: 1rem 3rem;'>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;'>Komparasi Metrik Kinerja Model</h2>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    tampilkan_gambar_visualisasi("Perbandingan_Metrik.png", "Grafik Perbandingan Metrik (Accuracy, Precision, Recall, F1-Score)")
     
     st.markdown("</div>", unsafe_allow_html=True)

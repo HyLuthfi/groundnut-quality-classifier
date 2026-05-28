@@ -3,27 +3,9 @@ import numpy as np
 from PIL import Image
 import os
 import tensorflow as tf
-
-# --- MONKEY PATCH KERAS BUG ---
-# Mengatasi bug Keras 3 yang membocorkan kwargs masa depan ke dalam file .h5 (legacy)
-from keras.layers import Dense, InputLayer
-
-# Patch Dense
-asli_dense_init = Dense.__init__
-def patch_dense_init(self, *args, **kwargs):
-    kwargs.pop('quantization_config', None)
-    asli_dense_init(self, *args, **kwargs)
-Dense.__init__ = patch_dense_init
-
-# Patch InputLayer
-asli_input_init = InputLayer.__init__
-def patch_input_init(self, *args, **kwargs):
-    if 'batch_shape' in kwargs:
-        kwargs['batch_input_shape'] = kwargs.pop('batch_shape')
-    kwargs.pop('optional', None)
-    asli_input_init(self, *args, **kwargs)
-InputLayer.__init__ = patch_input_init
-# ------------------------------
+from tensorflow.keras.applications import VGG16, MobileNetV2
+from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
+from tensorflow.keras.models import Model
 
 # Konfigurasi Halaman (Harus di awal)
 st.set_page_config(
@@ -132,7 +114,27 @@ def muat_model(nama_model):
     if path is None:
         return None
         
-    return tf.keras.models.load_model(path)
+    try:
+        # BANGUN ULANG ARSITEKTUR SECARA MANUAL UNTUK BYPASS ERROR JSON .H5
+        if nama_model == 'VGG16':
+            base_model = VGG16(weights=None, include_top=False, input_shape=(224, 224, 3))
+        else:
+            base_model = MobileNetV2(weights=None, include_top=False, input_shape=(224, 224, 3))
+            
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(128, activation='relu')(x)
+        x = Dropout(0.3)(x)
+        predictions = Dense(1, activation='sigmoid')(x)
+        
+        model = Model(inputs=base_model.input, outputs=predictions)
+        
+        # HANYA MUAT BOBOTNYA (MENGABAIKAN CONFIG JSON YANG BIKIN ERROR)
+        model.load_weights(path)
+        return model
+    except Exception as e:
+        st.error(f"Gagal memuat bobot model: {e}")
+        return None
 
 # Fungsi Preprocessing
 def praproses_citra(citra, nama_model):
